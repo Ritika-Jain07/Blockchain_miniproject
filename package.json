@@ -1,0 +1,12 @@
+{
+  "name": "blockchain_miniproject",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "compile": "truffle compile",
+    "migrate": "truffle migrate --reset"
+  },
+  "devDependencies": {
+    "truffle": "^5.11.5"
+  }
+}

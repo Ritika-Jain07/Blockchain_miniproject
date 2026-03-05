@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>EHR Blockchain Audit Dashboard</title>
+  <style>
+    body { font-family: system-ui, Arial; margin: 24px; line-height: 1.3; }
+    .row { display: flex; gap: 16px; flex-wrap: wrap; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; min-width: 320px; flex: 1; }
+    label { display:block; font-size: 12px; opacity: 0.75; margin-top: 10px; }
+    input, select, button { width: 100%; padding: 10px; margin-top: 6px; border-radius: 10px; border: 1px solid #ccc; }
+    button { cursor: pointer; font-weight: 600; }
+    pre { background: #0b1020; color: #d7e3ff; padding: 12px; border-radius: 12px; overflow:auto; }
+    .pill { display:inline-block; padding: 6px 10px; border-radius: 999px; font-size: 12px; }
+    .ok { background: #e7fff0; border: 1px solid #91f2b0; }
+    .no { background: #ffeaea; border: 1px solid #ff9b9b; }
+    .muted { opacity: .75; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h2>EHR Blockchain Audit Dashboard</h2>
+  <p class="muted">
+    This UI calls your backend API and shows what each role can access + the hash returned.
+  </p>
+
+  <div class="row">
+    <div class="card">
+      <h3>1) Choose Actor + Request</h3>
+
+      <label>Role (select account)</label>
+      <select id="from">
+        <option value="0x56E045B09Ee405F5082ef7a68BBffbEf560b9f4B">Doctor (Account #1)</option>
+        <option value="0x6C813fC85990eFA78496b531006F142c0Aa4eCA0">Researcher (Account #2)</option>
+        <option value="0x7dA9BaDD098114614871A23D00eEd326FcBB8FA8">Admin (Owner)</option>
+      </select>
+
+      <label>Purpose</label>
+      <select id="purpose">
+        <option value="1">Treatment (1)</option>
+        <option value="2">Research (2)</option>
+        <option value="3">Emergency (3)</option>
+      </select>
+
+      <label>Record ID</label>
+      <input id="recordId" type="number" value="10" min="0" />
+
+      <button id="fetchBtn">Fetch Record</button>
+      <button id="auditBtn" style="margin-top:10px;">Get Audit Stats</button>
+
+      <p id="status"></p>
+    </div>
+
+    <div class="card">
+      <h3>2) API Response</h3>
+      <pre id="output">{}</pre>
+    </div>
+
+    <div class="card">
+      <h3>3) Audit (summary)</h3>
+      <pre id="audit">{}</pre>
+    </div>
+  </div>
+
+<script>
+  const output = document.getElementById("output");
+  const audit = document.getElementById("audit");
+  const status = document.getElementById("status");
+
+  function setStatus(ok, msg) {
+    status.innerHTML = `<span class="pill ${ok ? 'ok' : 'no'}">${ok ? 'GRANTED' : 'DENIED'}</span> <span class="muted">${msg}</span>`;
+  }
+
+  async function fetchRecord() {
+    const from = document.getElementById("from").value.trim();
+    const purpose = document.getElementById("purpose").value;
+    const recordId = document.getElementById("recordId").value;
+
+    const url = `/api/record/${recordId}?purpose=${purpose}&from=${from}`;
+    output.textContent = "Loading...";
+
+    try {
+      const res = await fetch(url);
+      const text = await res.text();
+
+      let json;
+      try { json = JSON.parse(text); } catch { json = { raw: text }; }
+
+      output.textContent = JSON.stringify(json, null, 2);
+
+      if (res.ok && json.granted === true) setStatus(true, "Access allowed by policy");
+      else setStatus(false, json.message || json.error || `HTTP ${res.status}`);
+    } catch (e) {
+      output.textContent = String(e);
+      setStatus(false, "Network / server error");
+    }
+  }
+
+  async function auditStats() {
+    // We'll add these endpoints in backend in next step
+    audit.textContent = "Loading...";
+    try {
+      const res = await fetch("/api/audit/stats");
+      const json = await res.json();
+      audit.textContent = JSON.stringify(json, null, 2);
+    } catch (e) {
+      audit.textContent = String(e);
+    }
+  }
+
+  document.getElementById("fetchBtn").addEventListener("click", fetchRecord);
+  document.getElementById("auditBtn").addEventListener("click", auditStats);
+</script>
+</body>
+</html>
